@@ -807,28 +807,31 @@ class CallActivity : SimpleActivity() {
      * Show a bottom-sheet chooser with all available [VoiceEffect] options.
      * Called when the user taps the voice-effect card button in the call UI.
      */
-    private fun showVoiceEffectPicker() {
-        // Ensure service is bound so effect applies immediately when selected
-        if (!isVoiceServiceBound) {
-            bindVoiceProcessingService()
-        }
-        val current = voiceProcessingService?.getCurrentEffect() ?: VoiceEffect.None
-        val items = VoiceEffect.ALL.map { effect ->
-            SimpleListItem(
-                id = effect.id,
-                textRes = effect.labelRes,
-                selected = effect.id == current.id
-            )
-        }.toTypedArray()
+   private fun showVoiceEffectPicker() {
+       if (!isVoiceServiceBound) {
+           bindVoiceProcessingService()
+       }
+       val current = voiceProcessingService?.getCurrentEffect() ?: VoiceEffect.None
+       val items = VoiceEffect.ALL
+           .filterNotNull()
+           .map { effect ->
+               SimpleListItem(
+                   id = effect.id,
+                   textRes = effect.labelRes,
+                   selected = effect.id == current.id
+               )
+           }.toTypedArray()
 
-        DynamicBottomSheetChooserDialog.createChooser(
-            fragmentManager = supportFragmentManager,
-            title = R.string.voice_effect_picker_title,
-            items = items
-        ) { chosen ->
-            val effect = VoiceEffect.fromId(chosen.id)
-            voiceProcessingService?.setEffect(effect)
-        }
+       if (items.isEmpty()) return
+
+       DynamicBottomSheetChooserDialog.createChooser(
+           fragmentManager = supportFragmentManager,
+           title = R.string.voice_effect_picker_title,
+           items = items
+       ) { chosen ->
+           val effect = VoiceEffect.fromId(chosen.id) ?: VoiceEffect.None
+           voiceProcessingService?.setEffect(effect)
+       }
     }
 
     private fun showPhoneAccountPicker() {
