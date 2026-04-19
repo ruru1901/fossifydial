@@ -200,6 +200,11 @@
             android:enabled="true"
             android:exported="false" />
 
+        <receiver
+            android:name=".receivers.BugReporterReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
         <activity-alias
             android:name=".activities.SplashActivity.Red"
             android:enabled="false"

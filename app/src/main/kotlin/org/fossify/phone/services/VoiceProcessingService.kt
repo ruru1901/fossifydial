@@ -12,7 +12,10 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import org.fossify.phone.R
+import org.fossify.phone.engine.BackgroundSound
+import org.fossify.phone.engine.BackgroundSoundEngine
 import org.fossify.phone.models.VoiceEffect
+import org.fossify.phone.debug.BugReporter
 
 /**
  * A bound + started foreground service that owns the real-time voice-processing
@@ -37,11 +40,14 @@ class VoiceProcessingService : Service() {
     // ── State ────────────────────────────────────────────────────────────────
 
     @Volatile private var currentEffect: VoiceEffect = VoiceEffect.None
+    private lateinit var bgEngine: BackgroundSoundEngine
 
     // ── Service lifecycle ────────────────────────────────────────────────────
 
     override fun onCreate() {
         super.onCreate()
+        BugReporter.ensureChannel(this)
+        bgEngine = BackgroundSoundEngine()
         Log.d(TAG, "onCreate")
         startForeground(NOTIFICATION_ID, buildNotification())
     }
@@ -49,7 +55,14 @@ class VoiceProcessingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand action=${intent?.action}")
         when (intent?.action) {
-            ACTION_STOP -> stopSelf()
+            ACTION_STOP -> {
+                stopProcessing()
+                stopSelf()
+            }
+            else -> {
+                // normal start - begin audio processing
+                startProcessing()
+            }
         }
         return START_STICKY
     }
@@ -58,8 +71,38 @@ class VoiceProcessingService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        tearDownPipeline()
+        stopProcessing()
+        bgEngine.release()
         Log.d(TAG, "onDestroy")
+    }
+
+    // ── Pipeline lifecycle ────────────────────────────────────────────────────
+
+    /**
+     * Start audio capture and background mixer. Called from [CallService]
+     * when call becomes [Call.STATE_ACTIVE].
+     */
+    fun startProcessing() {
+        try {
+            startAudioCapture()
+            bgEngine.start(this)
+            Log.d(TAG, "startProcessing")
+        } catch (e: Exception) {
+            BugReporter.report(this, "VoiceProcessingService.startProcessing", e.message ?: "Unknown error")
+        }
+    }
+
+    /**
+     * Stop audio capture and background mixer. Called when call ends.
+     */
+    fun stopProcessing() {
+        try {
+            bgEngine.stop()
+            stopAudioCapture()
+            Log.d(TAG, "stopProcessing")
+        } catch (e: Exception) {
+            BugReporter.report(this, "VoiceProcessingService.stopProcessing", e.message ?: "Unknown error")
+        }
     }
 
     // ── Public API (called on the bound instance from CallActivity) ──────────
@@ -78,17 +121,35 @@ class VoiceProcessingService : Service() {
 
     fun getCurrentEffect(): VoiceEffect = currentEffect
 
+    /**
+     * Change background ambience sound.
+     */
+    fun setBackground(sound: BackgroundSound) {
+        bgEngine.setSound(sound, -15f)
+    }
+
+    /**
+     * Adjust background ambience volume.
+     */
+    fun setBackgroundVolume(volumeDb: Float) {
+        bgEngine.setVolume(volumeDb)
+    }
+
     // ── Pipeline (stub — replace with AudioRecord/AudioTrack + DSP logic) ───
 
     private fun applyEffect(effect: VoiceEffect) {
-        // TODO: forward to the real-time DSP thread / BackgroundMixer.
-        // e.g. pipeline.setEffect(effect)
+        // TODO: forward effect to real-time DSP / voice-processing pipeline
         Log.d(TAG, "applyEffect: $effect")
     }
 
-    private fun tearDownPipeline() {
-        // TODO: stop AudioRecord / AudioTrack threads, release resources.
-        Log.d(TAG, "tearDownPipeline")
+    private fun startAudioCapture() {
+        // TODO: initialize AudioRecord with proper audio source and start capture thread
+        Log.d(TAG, "startAudioCapture")
+    }
+
+    private fun stopAudioCapture() {
+        // TODO: stop AudioRecord, join capture thread, release resources
+        Log.d(TAG, "stopAudioCapture")
     }
 
     // ── Notification ─────────────────────────────────────────────────────────

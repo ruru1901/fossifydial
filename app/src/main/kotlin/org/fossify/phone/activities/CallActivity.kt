@@ -37,6 +37,7 @@ import org.fossify.phone.R
 import org.fossify.phone.databinding.ActivityCallBinding
 import org.fossify.phone.dialogs.DynamicBottomSheetChooserDialog
 import org.fossify.phone.extensions.*
+import org.fossify.phone.fragments.BackgroundPickerSheet
 import org.fossify.phone.helpers.*
 import org.fossify.phone.models.AudioRoute
 import org.fossify.phone.models.CallContact
@@ -213,6 +214,12 @@ class CallActivity : SimpleActivity() {
             showVoiceEffectPicker()
         }
 
+        callBackground.setOnClickListener {
+            if (isVoiceServiceBound && voiceProcessingService != null) {
+                BackgroundPickerSheet.show(supportFragmentManager, voiceProcessingService!!)
+            }
+        }
+
         dialpadInclude.apply {
             dialpad0Holder.setOnClickListener { dialpadPressed('0') }
             dialpad1Holder.setOnClickListener { dialpadPressed('1') }
@@ -267,7 +274,7 @@ class CallActivity : SimpleActivity() {
         val inactiveColor = getInactiveButtonColor()
         arrayOf(
             callToggleMicrophone, callToggleSpeaker, callDialpad,
-            callToggleHold, callAdd, callSwap, callMerge, callManage, callVoiceEffect
+            callToggleHold, callAdd, callSwap, callMerge, callManage, callVoiceEffect, callBackground
         ).forEach {
             it.applyColorFilter(bgColor.getContrastColor())
             it.background.applyColorFilter(inactiveColor)
@@ -275,7 +282,7 @@ class CallActivity : SimpleActivity() {
 
         arrayOf(
             callToggleMicrophone, callToggleSpeaker, callDialpad,
-            callToggleHold, callAdd, callSwap, callMerge, callManage, callVoiceEffect
+            callToggleHold, callAdd, callSwap, callMerge, callManage, callVoiceEffect, callBackground
         ).forEach { imageView ->
             imageView.setOnLongClickListener {
                 if (!imageView.contentDescription.isNullOrEmpty()) {
@@ -718,6 +725,8 @@ class CallActivity : SimpleActivity() {
             updateCallState(phoneState.active)
             updateCallOnHoldState(phoneState.onHold)
         }
+
+        setActionButtonEnabled(binding.callBackground, isVoiceServiceBound)
 
         updateCallAudioState(CallManager.getCallAudioRoute())
     }
