@@ -96,14 +96,16 @@
         https://github.com/FossifyOrg/Commons/tree/master/commons/src/main/res
     -->
 
-    <!-- Voice processing -->
-    <string name="voice_processing_channel_name">Voice processing</string>
-    <string name="voice_processing_notification_title">Voice processing active</string>
-    <string name="voice_processing_notification_text">Effect: %1$s</string>
-    <string name="voice_effect_picker_title">Choose voice effect</string>
     <string name="voice_effect_none">None</string>
-    <string name="voice_effect_pitch_up">Pitch up</string>
-    <string name="voice_effect_pitch_down">Pitch down</string>
+    <string name="voice_effect_pitch_up">Pitch Up</string>
+    <string name="voice_effect_pitch_down">Pitch Down</string>
     <string name="voice_effect_robot">Robot</string>
     <string name="voice_effect_echo">Echo</string>
+    <string name="voice_effect_picker_title">Voice Effect</string>
+    <string name="voice_processing_notification_title">Voice Processing</string>
+    <string name="voice_processing_notification_text">Effect: %s</string>
+    <string name="voice_processing_channel_name">Voice Processing</string>
+    <!-- Background sounds -->
+    <string name="background_sounds">Background sounds</string>
+    <string name="volume">Volume</string>
 </resources>
