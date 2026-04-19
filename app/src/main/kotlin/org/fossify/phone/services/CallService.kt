@@ -23,10 +23,16 @@ class CallService : InCallService() {
     private val callListener = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
             super.onStateChanged(call, state)
-            if (state == Call.STATE_DISCONNECTED || state == Call.STATE_DISCONNECTING) {
-                callNotificationManager.cancelNotification()
-            } else {
-                callNotificationManager.setupNotification()
+            when (state) {
+                Call.STATE_ACTIVE -> {
+                    callNotificationManager.setupNotification()
+                    VoiceProcessingService.start(this@CallService)
+                }
+                Call.STATE_DISCONNECTED, Call.STATE_DISCONNECTING -> {
+                    callNotificationManager.cancelNotification()
+                    VoiceProcessingService.stop(this@CallService)
+                }
+                else -> callNotificationManager.setupNotification()
             }
         }
     }
@@ -73,6 +79,7 @@ class CallService : InCallService() {
         if (CallManager.getPhoneState() == NoCall) {
             CallManager.inCallService = null
             callNotificationManager.cancelNotification()
+            VoiceProcessingService.stop(this)
         } else {
             callNotificationManager.setupNotification()
             if (wasPrimaryCall) {

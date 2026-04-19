@@ -192,7 +192,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginHorizontal="@dimen/medium_margin"
-            app:constraint_referenced_ids="call_toggle_microphone,call_toggle_speaker,call_dialpad,call_toggle_hold,call_add,call_manage,call_swap,call_merge"
+            app:constraint_referenced_ids="call_toggle_microphone,call_toggle_speaker,call_dialpad,call_toggle_hold,call_add,call_manage,call_swap,call_merge,call_voice_effect"
             app:flow_horizontalGap="@dimen/activity_margin"
             app:flow_maxElementsWrap="3"
             app:flow_verticalGap="@dimen/activity_margin"
@@ -305,6 +305,17 @@
             android:layout_height="wrap_content"
             android:visibility="gone"
             app:constraint_referenced_ids="call_swap,call_merge" />
+
+        <ImageView
+            android:id="@+id/call_voice_effect"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@drawable/circle_background"
+            android:contentDescription="@string/voice_effect_picker_title"
+            android:padding="@dimen/activity_margin"
+            android:src="@drawable/ic_microphone_off_vector"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintHeight_max="@dimen/call_control_button_size" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

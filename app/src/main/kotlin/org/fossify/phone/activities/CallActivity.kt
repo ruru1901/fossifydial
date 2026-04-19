@@ -2,13 +2,16 @@ package org.fossify.phone.activities
 
 import android.annotation.SuppressLint
 import android.app.KeyguardManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.telecom.Call
@@ -37,6 +40,8 @@ import org.fossify.phone.extensions.*
 import org.fossify.phone.helpers.*
 import org.fossify.phone.models.AudioRoute
 import org.fossify.phone.models.CallContact
+import org.fossify.phone.models.VoiceEffect
+import org.fossify.phone.services.VoiceProcessingService
 import kotlin.math.max
 import kotlin.math.min
 
@@ -65,6 +70,23 @@ class CallActivity : SimpleActivity() {
     private var dialpadHeight = 0f
 
     private var audioRouteChooserDialog: DynamicBottomSheetChooserDialog? = null
+
+    // ── VoiceProcessingService binding ───────────────────────────────────────
+    private var voiceProcessingService: VoiceProcessingService? = null
+    private var isVoiceServiceBound = false
+
+    private val voiceServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+            voiceProcessingService =
+                (binder as? VoiceProcessingService.LocalBinder)?.getService()
+            isVoiceServiceBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            voiceProcessingService = null
+            isVoiceServiceBound = false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,6 +124,7 @@ class CallActivity : SimpleActivity() {
         super.onDestroy()
         CallManager.removeListener(callCallback)
         disableProximitySensor()
+        unbindVoiceProcessingService()
 
         if (screenOnWakeLock?.isHeld == true) {
             screenOnWakeLock!!.release()
@@ -186,6 +209,10 @@ class CallActivity : SimpleActivity() {
             endCall()
         }
 
+        callVoiceEffect.setOnClickListener {
+            showVoiceEffectPicker()
+        }
+
         dialpadInclude.apply {
             dialpad0Holder.setOnClickListener { dialpadPressed('0') }
             dialpad1Holder.setOnClickListener { dialpadPressed('1') }
@@ -240,7 +267,7 @@ class CallActivity : SimpleActivity() {
         val inactiveColor = getInactiveButtonColor()
         arrayOf(
             callToggleMicrophone, callToggleSpeaker, callDialpad,
-            callToggleHold, callAdd, callSwap, callMerge, callManage
+            callToggleHold, callAdd, callSwap, callMerge, callManage, callVoiceEffect
         ).forEach {
             it.applyColorFilter(bgColor.getContrastColor())
             it.background.applyColorFilter(inactiveColor)
@@ -248,7 +275,7 @@ class CallActivity : SimpleActivity() {
 
         arrayOf(
             callToggleMicrophone, callToggleSpeaker, callDialpad,
-            callToggleHold, callAdd, callSwap, callMerge, callManage
+            callToggleHold, callAdd, callSwap, callMerge, callManage, callVoiceEffect
         ).forEach { imageView ->
             imageView.setOnLongClickListener {
                 if (!imageView.contentDescription.isNullOrEmpty()) {
@@ -747,6 +774,48 @@ class CallActivity : SimpleActivity() {
         binding.callEnd.beVisible()
         callDurationHandler.removeCallbacks(updateCallDurationTask)
         callDurationHandler.post(updateCallDurationTask)
+        bindVoiceProcessingService()
+    }
+
+    // ── VoiceProcessingService helpers ───────────────────────────────────────
+
+    private fun bindVoiceProcessingService() {
+        if (isVoiceServiceBound) return
+        val intent = VoiceProcessingService.bindIntent(this)
+        bindService(intent, voiceServiceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    private fun unbindVoiceProcessingService() {
+        if (!isVoiceServiceBound) return
+        try {
+            unbindService(voiceServiceConnection)
+        } catch (_: IllegalArgumentException) { /* not bound */ }
+        isVoiceServiceBound = false
+        voiceProcessingService = null
+    }
+
+    /**
+     * Show a bottom-sheet chooser with all available [VoiceEffect] options.
+     * Called when the user taps the voice-effect card button in the call UI.
+     */
+    private fun showVoiceEffectPicker() {
+        val current = voiceProcessingService?.getCurrentEffect() ?: VoiceEffect.None
+        val items = VoiceEffect.ALL.map { effect ->
+            SimpleListItem(
+                id = effect.id,
+                textRes = effect.labelRes,
+                selected = effect.id == current.id
+            )
+        }.toTypedArray()
+
+        DynamicBottomSheetChooserDialog.createChooser(
+            fragmentManager = supportFragmentManager,
+            title = R.string.voice_effect_picker_title,
+            items = items
+        ) { chosen ->
+            val effect = VoiceEffect.fromId(chosen.id)
+            voiceProcessingService?.setEffect(effect)
+        }
     }
 
     private fun showPhoneAccountPicker() {
