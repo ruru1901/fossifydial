@@ -808,6 +808,10 @@ class CallActivity : SimpleActivity() {
      * Called when the user taps the voice-effect card button in the call UI.
      */
     private fun showVoiceEffectPicker() {
+        // Ensure service is bound so effect applies immediately when selected
+        if (!isVoiceServiceBound) {
+            bindVoiceProcessingService()
+        }
         val current = voiceProcessingService?.getCurrentEffect() ?: VoiceEffect.None
         val items = VoiceEffect.ALL.map { effect ->
             SimpleListItem(
@@ -852,18 +856,14 @@ class CallActivity : SimpleActivity() {
 
         isCallEnded = true
         runOnUiThread {
+            disableAllActionButtons()
             if (callDuration > 0) {
-                disableAllActionButtons()
                 @SuppressLint("SetTextI18n")
                 binding.callStatusLabel.text = "${callDuration.getFormattedDuration()} (${getString(R.string.call_ended)})"
-                Handler(mainLooper).postDelayed(3000) {
-                    safeFinishAndRemoveTask()
-                }
             } else {
-                disableAllActionButtons()
                 binding.callStatusLabel.text = getString(R.string.call_ended)
-                finish()
             }
+            safeFinishAndRemoveTask()
         }
     }
 
