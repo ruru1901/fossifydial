@@ -25,12 +25,12 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon   # ← --no-daemon saves memory on CI
+      - name: Build Foss debug APK
+        run: ./gradlew assembleFossDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: fossify-phone-debug
-          path: app/build/outputs/apk/debug/*.apk  # ← scoped to debug only
+          path: app/build/outputs/apk/foss/debug/*.apk
           retention-days: 7                         # ← auto-cleanup after 7 days
