@@ -65,6 +65,7 @@ class CallActivity : SimpleActivity() {
     private var screenOnWakeLock: PowerManager.WakeLock? = null
     private var callDuration = 0
     private val callDurationHandler = Handler(Looper.getMainLooper())
+    private val callToneTester = CallToneTester()
     private var dragDownX = 0f
     private var stopAnimation = false
     private var viewsUnderDialpad = arrayListOf<Pair<View, Float>>()
@@ -124,6 +125,7 @@ class CallActivity : SimpleActivity() {
     override fun onDestroy() {
         super.onDestroy()
         CallManager.removeListener(callCallback)
+        callToneTester.stop()
         disableProximitySensor()
         unbindVoiceProcessingService()
 
@@ -781,6 +783,7 @@ class CallActivity : SimpleActivity() {
         binding.incomingCallHolder.beGone()
         binding.ongoingCallHolder.beVisible()
         binding.callEnd.beVisible()
+        callToneTester.start()
         callDurationHandler.removeCallbacks(updateCallDurationTask)
         callDurationHandler.post(updateCallDurationTask)
         bindVoiceProcessingService()
@@ -844,6 +847,7 @@ class CallActivity : SimpleActivity() {
 
     private fun endCall() {
         CallManager.reject()
+        callToneTester.stop()
         disableProximitySensor()
         audioRouteChooserDialog?.dismissAllowingStateLoss()
 
